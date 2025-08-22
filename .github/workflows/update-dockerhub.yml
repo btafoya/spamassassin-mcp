@@ -17,6 +17,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug secrets
+        run: |
+          echo "DOCKERHUB_USERNAME set: ${{ secrets.DOCKERHUB_USERNAME != '' }}"
+          echo "DOCKERHUB_PASSWORD set: ${{ secrets.DOCKERHUB_PASSWORD != '' }}"
+
       - name: Extract Docker Hub information
         run: |
           chmod +x scripts/extract-dockerhub-info.sh
@@ -30,7 +35,7 @@ jobs:
           fi
 
       - name: Update Docker Hub description
-        if: env.DOCKERHUB_USERNAME != ''
+        if: secrets.DOCKERHUB_USERNAME != ''
         uses: peter-evans/dockerhub-description@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
