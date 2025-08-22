@@ -1,0 +1,31 @@
+# SpamAssassin MCP Server Configuration
+
+server:
+  bind_addr: "0.0.0.0:8080"
+  timeout: "30s"
+
+spamassassin:
+  host: "localhost"
+  port: 783
+  timeout: "30s"
+  threshold: 5.0
+
+security:
+  max_email_size: 10485760  # 10MB
+  rate_limiting:
+    requests_per_minute: 60
+    burst_size: 10
+  scan_timeout: "60s"
+  validation_enabled: true
+  
+  # Allowed senders (whitelist)
+  allowed_senders:
+    - "admin@example.com"
+    - "support@trusted-domain.com"
+    
+  # Blocked domains (blacklist)
+  blocked_domains:
+    - "spam-domain.com"
+    - "malicious-site.net"
+
+log_level: "info"

@@ -1,0 +1,89 @@
+services:
+  spamassassin-mcp:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: spamassassin-mcp
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # Configuration (read-only)
+      - ./configs:/etc/spamassassin-mcp:ro
+      # SpamAssassin rules and data
+      - spamassassin-rules:/var/lib/spamassassin
+      # Logs
+      - spamassassin-logs:/var/log/spamassassin
+    environment:
+      # Server configuration
+      - SA_MCP_LOG_LEVEL=info
+      - SA_MCP_SERVER_BIND_ADDR=0.0.0.0:8080
+      - SA_MCP_SERVER_TIMEOUT=30s
+      
+      # SpamAssassin configuration
+      - SA_MCP_SPAMASSASSIN_HOST=localhost
+      - SA_MCP_SPAMASSASSIN_PORT=783
+      - SA_MCP_SPAMASSASSIN_TIMEOUT=30s
+      - SA_MCP_SPAMASSASSIN_THRESHOLD=5.0
+      
+      # Security configuration
+      - SA_MCP_SECURITY_MAX_EMAIL_SIZE=10485760  # 10MB
+      - SA_MCP_SECURITY_RATE_LIMITING_REQUESTS_PER_MINUTE=60
+      - SA_MCP_SECURITY_RATE_LIMITING_BURST_SIZE=10
+      - SA_MCP_SECURITY_SCAN_TIMEOUT=60s
+      - SA_MCP_SECURITY_VALIDATION_ENABLED=true
+    networks:
+      - spamassassin-net
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/run:noexec,nosuid,size=50m
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/health-check.sh"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  # Optional: Standalone SpamAssassin daemon for testing
+  spamd:
+    image: ubuntu:22.04
+    container_name: spamd
+    restart: unless-stopped
+    command: >
+      bash -c "
+        apt-get update &&
+        apt-get install -y spamassassin &&
+        spamd --create-prefs --max-children 5 --helper-home-dir /var/lib/spamassassin --listen-ip 0.0.0.0 --allowed-ips 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 --pidfile /var/run/spamd.pid
+      "
+    volumes:
+      - spamassassin-rules:/var/lib/spamassassin
+    networks:
+      - spamassassin-net
+    expose:
+      - "783"
+    profiles:
+      - testing
+
+volumes:
+  spamassassin-rules:
+    driver: local
+  spamassassin-logs:
+    driver: local
+
+networks:
+  spamassassin-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
