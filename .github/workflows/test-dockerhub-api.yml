@@ -1,0 +1,45 @@
+name: Test Docker Hub API
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract Docker Hub information
+        run: |
+          chmod +x scripts/extract-dockerhub-info.sh
+          ./scripts/extract-dockerhub-info.sh
+
+      - name: Test Docker Hub API directly
+        run: |
+          # Test if we can authenticate with Docker Hub API
+          echo "Testing Docker Hub authentication..."
+          
+          # Try to get an authentication token
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"username":"${{ secrets.DOCKER_USERNAME }}","password":"${{ secrets.DOCKER_PASSWORD }}"}' \
+            https://hub.docker.com/v2/users/login/)
+          
+          echo "Login response code: $RESPONSE"
+          
+          if [ "$RESPONSE" -eq 200 ]; then
+            echo "Authentication successful"
+          elif [ "$RESPONSE" -eq 401 ]; then
+            echo "Authentication failed - check username/password"
+          else
+            echo "Unexpected response: $RESPONSE"
+          fi
+          
+          # Check if repository exists
+          echo "Checking if repository exists..."
+          REPO_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/spamassassin-mcp/)
+          
+          echo "Repository check response code: $REPO_RESPONSE"
