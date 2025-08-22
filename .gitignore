@@ -48,6 +48,7 @@ temp/
 # Local configuration overrides
 config.local.yaml
 .env.local
+# Note: .env is tracked for default values, use .env.local for sensitive overrides
 
 # SpamAssassin data (if running locally)
 .spamassassin/
@@ -55,3 +56,4 @@ config.local.yaml
 # Test data
 test-emails/
 *.eml
+.crush.json

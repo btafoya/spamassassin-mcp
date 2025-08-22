@@ -35,7 +35,7 @@ init_spamassassin() {
         # Wait for spamd to be ready
         log "Waiting for SpamAssassin daemon to be ready..."
         for i in {1..30}; do
-            if nc -z 127.0.0.1 783 2>/dev/null; then
+            if timeout 2 bash -c 'echo >/dev/tcp/127.0.0.1/783' 2>/dev/null; then
                 log "SpamAssassin daemon is ready"
                 break
             fi
@@ -93,8 +93,8 @@ fi
 
 # Validate configuration
 log "Validating configuration..."
-if ! /usr/local/bin/mcp-server --help >/dev/null 2>&1; then
-    log "ERROR: MCP server binary validation failed"
+if [ ! -x /usr/local/bin/mcp-server ]; then
+    log "ERROR: MCP server binary not found or not executable"
     exit 1
 fi
 

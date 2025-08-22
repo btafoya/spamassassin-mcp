@@ -17,20 +17,21 @@ fi
 
 # Health check functions
 check_mcp_server() {
-    # Check if MCP server port is open
-    if ! nc -z localhost "$MCP_PORT" 2>/dev/null; then
+    # Check if MCP server port is open using TCP test
+    if ! timeout 3 bash -c "echo >/dev/tcp/localhost/$MCP_PORT" 2>/dev/null; then
         echo "ERROR: MCP server not responding on port $MCP_PORT"
         return 1
     fi
     
     # Try to connect via HTTP (basic connectivity test)
     if command -v curl >/dev/null 2>&1; then
-        if ! curl -f -s --max-time "$TIMEOUT" "http://localhost:$MCP_PORT/health" >/dev/null 2>&1; then
-            # If /health endpoint doesn't exist, just check port connectivity
-            if ! nc -z localhost "$MCP_PORT" 2>/dev/null; then
-                echo "ERROR: MCP server health check failed"
-                return 1
-            fi
+        # Test HTTP connection to the root endpoint
+        if curl -f -s --max-time "$TIMEOUT" "http://localhost:$MCP_PORT/" >/dev/null 2>&1; then
+            return 0
+        fi
+        # Fallback: just test that the port accepts HTTP requests
+        if curl -s --max-time "$TIMEOUT" "http://localhost:$MCP_PORT/mcp" >/dev/null 2>&1; then
+            return 0
         fi
     fi
     
@@ -45,7 +46,7 @@ check_spamassassin() {
     fi
     
     # Check if spamd port is accessible
-    if ! nc -z localhost 783 2>/dev/null; then
+    if ! timeout 3 bash -c "echo >/dev/tcp/localhost/783" 2>/dev/null; then
         echo "WARNING: SpamAssassin daemon not responding on port 783"
         return 1
     fi

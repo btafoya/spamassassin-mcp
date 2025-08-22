@@ -40,6 +40,18 @@ docker compose up -d
 docker compose logs spamassassin-mcp
 ```
 
+### 1. Alternative: Use Pre-built Image
+```bash
+# Pull the latest image from Docker Hub
+docker pull your-dockerhub-username/spamassassin-mcp:latest
+
+# Run the container
+docker run -d \
+  --name spamassassin-mcp \
+  -p 8081:8080 \
+  your-dockerhub-username/spamassassin-mcp:latest
+```
+
 ### 2. Connect Claude Code
 ```bash
 # Connect to containerized server (SSE transport)
@@ -308,6 +320,44 @@ docker compose exec spamassassin-mcp /usr/local/bin/health-check.sh
 ## 📄 License
 
 MIT License - See [LICENSE](LICENSE) file for details.
+
+## 🔄 CI/CD with GitHub Actions
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+1. **Docker Build and Push**: Automatically builds and pushes Docker images to Docker Hub on pushes to `main` branch and tags
+2. **Test Docker Image**: Runs tests on the Docker image to ensure it builds and runs correctly
+
+### Setting up Docker Hub Publishing
+
+To use the Docker Hub publishing workflow:
+
+1. Create a Docker Hub account if you don't already have one
+
+2. Generate a Docker Hub access token:
+   - Log in to Docker Hub
+   - Go to Account Settings > Security
+   - Click "New Access Token"
+   - Give it a descriptive name (e.g., "GitHub Actions")
+   - Set permissions to "Read & Write"
+   - Copy the generated token (you won't see it again)
+
+3. Set up Docker Hub credentials as GitHub Secrets:
+   - Go to your GitHub repository settings
+   - Click "Secrets and variables" > "Actions"
+   - Add two new repository secrets:
+     - `DOCKER_USERNAME`: Your Docker Hub username
+     - `DOCKER_PASSWORD`: Your Docker Hub access token (the token you just created)
+
+4. Push to the `main` branch or create a tag starting with `v` (e.g., `v1.0.0`)
+   - The workflow will automatically build and push the image to Docker Hub
+
+The published images will be available at `https://hub.docker.com/r/YOUR_USERNAME/spamassassin-mcp` where `YOUR_USERNAME` is your Docker Hub username.
+
+Image tags:
+- `latest` - Latest build from the main branch
+- `vX.Y.Z` - Specific version tags for releases
+- `commit-SHA` - Specific commit builds
 
 ## 🤝 Contributing
 

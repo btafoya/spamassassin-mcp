@@ -33,6 +33,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -44,6 +45,26 @@ import (
 	"spamassassin-mcp/internal/handlers"
 	"spamassassin-mcp/internal/spamassassin"
 )
+
+// isRunningInContainer detects if the application is running inside a container.
+//
+// This function checks for common container indicators:
+//   - Presence of /.dockerenv file (Docker)
+//   - Container-specific environment variables
+//   - cgroup filesystem indicators
+func isRunningInContainer() bool {
+	// Check for Docker container indicator
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return true
+	}
+	
+	// Check for container environment variables
+	if os.Getenv("CONTAINER") != "" || os.Getenv("DOCKER_CONTAINER") != "" {
+		return true
+	}
+	
+	return false
+}
 
 // main is the entry point for the SpamAssassin MCP server.
 //
@@ -103,11 +124,38 @@ func main() {
 		cancel()
 	}()
 
-	// Start the MCP server with stdio transport
-	logrus.Info("Starting MCP server with stdio transport")
-	transport := mcp.NewLoggingTransport(mcp.NewStdioTransport(), os.Stderr)
-	if err := server.Run(ctx, transport); err != nil {
-		logrus.Fatalf("Server error: %v", err)
+	// Choose transport and handling based on environment
+	if isRunningInContainer() {
+		// Container mode: Use SSE transport for HTTP-based MCP communication
+		logrus.Infof("Starting MCP server with SSE transport on %s", cfg.Server.BindAddr)
+		
+		// Set up HTTP server for SSE transport
+		go func() {
+			http.HandleFunc("/mcp", func(w http.ResponseWriter, r *http.Request) {
+				transport := mcp.NewLoggingTransport(
+					mcp.NewSSEServerTransport("/mcp", w),
+					os.Stderr,
+				)
+				if err := server.Run(ctx, transport); err != nil {
+					logrus.Errorf("SSE transport error: %v", err)
+				}
+			})
+			
+			logrus.Infof("HTTP server listening on %s", cfg.Server.BindAddr)
+			if err := http.ListenAndServe(cfg.Server.BindAddr, nil); err != nil {
+				logrus.Errorf("HTTP server error: %v", err)
+			}
+		}()
+		
+		// Keep container alive
+		<-ctx.Done()
+	} else {
+		// Direct mode: Use stdio transport for client connections
+		logrus.Info("Starting MCP server with stdio transport")
+		transport := mcp.NewLoggingTransport(mcp.NewStdioTransport(), os.Stderr)
+		if err := server.Run(ctx, transport); err != nil {
+			logrus.Fatalf("Server error: %v", err)
+		}
 	}
 
 	logrus.Info("SpamAssassin MCP Server stopped")

@@ -6,7 +6,7 @@ services:
     container_name: spamassassin-mcp
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${SA_MCP_HOST_PORT:-8081}:8080"
     volumes:
       # Configuration (read-only)
       - ./configs:/etc/spamassassin-mcp:ro
@@ -16,22 +16,25 @@ services:
       - spamassassin-logs:/var/log/spamassassin
     environment:
       # Server configuration
-      - SA_MCP_LOG_LEVEL=info
-      - SA_MCP_SERVER_BIND_ADDR=0.0.0.0:8080
-      - SA_MCP_SERVER_TIMEOUT=30s
+      - SA_MCP_LOG_LEVEL=${SA_MCP_LOG_LEVEL:-info}
+      - SA_MCP_SERVER_BIND_ADDR=${SA_MCP_SERVER_BIND_ADDR:-0.0.0.0:8080}
+      - SA_MCP_SERVER_TIMEOUT=${SA_MCP_SERVER_TIMEOUT:-30s}
       
       # SpamAssassin configuration
-      - SA_MCP_SPAMASSASSIN_HOST=localhost
-      - SA_MCP_SPAMASSASSIN_PORT=783
-      - SA_MCP_SPAMASSASSIN_TIMEOUT=30s
-      - SA_MCP_SPAMASSASSIN_THRESHOLD=5.0
+      - SA_MCP_SPAMASSASSIN_HOST=${SA_MCP_SPAMASSASSIN_HOST:-localhost}
+      - SA_MCP_SPAMASSASSIN_PORT=${SA_MCP_SPAMASSASSIN_PORT:-783}
+      - SA_MCP_SPAMASSASSIN_TIMEOUT=${SA_MCP_SPAMASSASSIN_TIMEOUT:-30s}
+      - SA_MCP_SPAMASSASSIN_THRESHOLD=${SA_MCP_SPAMASSASSIN_THRESHOLD:-5.0}
       
       # Security configuration
-      - SA_MCP_SECURITY_MAX_EMAIL_SIZE=10485760  # 10MB
-      - SA_MCP_SECURITY_RATE_LIMITING_REQUESTS_PER_MINUTE=60
-      - SA_MCP_SECURITY_RATE_LIMITING_BURST_SIZE=10
-      - SA_MCP_SECURITY_SCAN_TIMEOUT=60s
-      - SA_MCP_SECURITY_VALIDATION_ENABLED=true
+      - SA_MCP_SECURITY_MAX_EMAIL_SIZE=${SA_MCP_SECURITY_MAX_EMAIL_SIZE:-10485760}
+      - SA_MCP_SECURITY_RATE_LIMITING_REQUESTS_PER_MINUTE=${SA_MCP_SECURITY_RATE_LIMITING_REQUESTS_PER_MINUTE:-60}
+      - SA_MCP_SECURITY_RATE_LIMITING_BURST_SIZE=${SA_MCP_SECURITY_RATE_LIMITING_BURST_SIZE:-10}
+      - SA_MCP_SECURITY_SCAN_TIMEOUT=${SA_MCP_SECURITY_SCAN_TIMEOUT:-60s}
+      - SA_MCP_SECURITY_VALIDATION_ENABLED=${SA_MCP_SECURITY_VALIDATION_ENABLED:-true}
+      
+      # Optional rule updates
+      - UPDATE_RULES=${UPDATE_RULES:-false}
     networks:
       - spamassassin-net
     security_opt:
@@ -86,4 +89,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.25.0.0/16
+        - subnet: 192.168.100.0/24
