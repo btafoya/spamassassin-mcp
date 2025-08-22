@@ -1,13 +1,6 @@
 name: Update Docker Hub Overview
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'README.md'
-      - '.github/workflows/update-dockerhub.yml'
-      - 'scripts/extract-dockerhub-info.sh'
   workflow_dispatch:
 
 jobs:
