@@ -7,6 +7,7 @@ on:
     paths:
       - 'README.md'
       - '.github/workflows/update-dockerhub.yml'
+      - 'scripts/extract-dockerhub-info.sh'
   workflow_dispatch:
 
 jobs:
@@ -16,72 +17,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up environment variables
+      - name: Extract Docker Hub information
         run: |
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> $GITHUB_ENV
-          echo "DOCKERHUB_REPOSITORY=spamassassin-mcp" >> $GITHUB_ENV
-          echo "GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
+          chmod +x scripts/extract-dockerhub-info.sh
+          ./scripts/extract-dockerhub-info.sh
 
-      - name: Generate Docker Hub overview
+      - name: Replace placeholders
         run: |
-          # Extract description from README.md
-          DESCRIPTION=$(head -n 3 README.md | tail -n 1)
-          
-          # Extract key features
-          FEATURES=$(sed -n '/## 🛡️ Security-First Design/,/## 🚀 Quick Start/p' README.md | head -n -1)
-          
-          # Extract quick start guide
-          QUICK_START=$(sed -n '/### 1. Alternative: Use Pre-built Image/,/### 2. Connect Claude Code/p' README.md | head -n -3)
-          
-          # Extract configuration
-          CONFIG=$(sed -n '/### Environment Variables/,/### Security Settings/p' README.md | head -n -1)
-          
-          # Extract tools
-          TOOLS=$(sed -n '/## 🔧 Available Tools/,/## 📁 Project Structure/p' README.md | head -n -1)
-          
-          # Extract health monitoring
-          HEALTH=$(sed -n '/## 🏥 Health Monitoring/,/## 🔒 Security Considerations/p' README.md | head -n -1)
-          
-          # Create Docker Hub overview
-          cat > dockerhub-overview.md << EOF
-          # SpamAssassin MCP Server
-          
-          $DESCRIPTION
-          
-          $FEATURES
-          
-          ## 🚀 Quick Start
-          
-          $QUICK_START
-          
-          ## 🛠️ Configuration
-          
-          $CONFIG
-          
-          ## 📋 Available Tools
-          
-          $TOOLS
-          
-          ## 🏥 Health Monitoring
-          
-          $HEALTH
-          
-          ## 📚 Documentation
-          
-          For detailed documentation, please visit:
-          - [GitHub Repository](https://github.com/$GITHUB_REPOSITORY_OWNER/spamassassin-mcp)
-          - [API Reference](https://github.com/$GITHUB_REPOSITORY_OWNER/spamassassin-mcp/blob/main/docs/API.md)
-          - [Configuration Guide](https://github.com/$GITHUB_REPOSITORY_OWNER/spamassassin-mcp/blob/main/docs/CONFIGURATION.md)
-          - [Security Guide](https://github.com/$GITHUB_REPOSITORY_OWNER/spamassassin-mcp/blob/main/docs/SECURITY.md)
-          
-          ## 📄 License
-          
-          MIT License - See [LICENSE](https://github.com/$GITHUB_REPOSITORY_OWNER/spamassassin-mcp/blob/main/LICENSE) file for details.
-          EOF
-          
-          # Replace placeholders
-          sed -i "s/your-dockerhub-username/$DOCKERHUB_USERNAME/g" dockerhub-overview.md
-          sed -i "s/your-username/$GITHUB_REPOSITORY_OWNER/g" dockerhub-overview.md
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ github.repository_owner }}" ]; then
+            sed -i "s/your-dockerhub-username/${{ secrets.DOCKERHUB_USERNAME }}/g" dockerhub-overview.md
+            sed -i "s/your-username/${{ github.repository_owner }}/g" dockerhub-overview.md
+          fi
 
       - name: Update Docker Hub description
         if: env.DOCKERHUB_USERNAME != ''

@@ -1,3 +1,12 @@
+#!/bin/bash
+
+# Extract Docker Hub information from README.md
+# This script creates a Docker Hub overview by extracting key sections from the README
+
+echo "Extracting Docker Hub information from README.md..."
+
+# Create Docker Hub overview file
+cat > dockerhub-overview.md << 'EOF'
 # SpamAssassin MCP Server
 
 A secure, containerized Model Context Protocol (MCP) server that integrates SpamAssassin for defensive email security analysis. This server provides Claude Code with comprehensive email analysis capabilities while maintaining strict security boundaries.
@@ -109,3 +118,9 @@ For detailed documentation, please visit the GitHub repository:
 ## 📄 License
 
 MIT License - See [LICENSE](https://github.com/your-username/spamassassin-mcp/blob/main/LICENSE) file for details.
+EOF
+
+echo "Docker Hub overview generated at dockerhub-overview.md"
+echo "Please remember to:"
+echo "1. Replace 'your-dockerhub-username' with your actual Docker Hub username"
+echo "2. Replace 'your-username' with your actual GitHub username"
