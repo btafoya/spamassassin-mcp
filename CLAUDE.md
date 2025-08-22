@@ -19,15 +19,21 @@ go mod tidy && go mod download
 
 ### Container Operations
 ```bash
-# Start services
-docker-compose up -d
+# Start services (uses .env file for configuration)
+docker compose up -d
 
 # View logs and health
-docker-compose logs -f spamassassin-mcp
-docker-compose exec spamassassin-mcp /usr/local/bin/health-check.sh
+docker compose logs -f spamassassin-mcp
+docker compose exec spamassassin-mcp /usr/local/bin/health-check.sh
 
 # Rebuild after changes
-docker-compose up -d --build
+docker compose up -d --build
+
+# Use custom port (modify .env file or set environment variable)
+SA_MCP_HOST_PORT=8082 docker compose up -d
+
+# Connect Claude Code to containerized server
+# Server available at: http://localhost:8081/mcp (SSE transport)
 ```
 
 ### Testing MCP Integration
@@ -45,7 +51,7 @@ docker-compose up -d --build
 ## Task Completion Checklist
 When completing development tasks:
 
-1. **Code Quality**: `go fmt ./...` ’ `go vet ./...` ’ `go build`
+1. **Code Quality**: `go fmt ./...` ï¿½ `go vet ./...` ï¿½ `go build`
 2. **Container Test**: `docker-compose up -d --build`
 3. **Health Check**: Verify `/usr/local/bin/health-check.sh` passes
 4. **MCP Tools**: Test tool responses with sample inputs
@@ -54,6 +60,7 @@ When completing development tasks:
 ## Tech Stack
 - **Language**: Go 1.23.0+ with toolchain 1.24.4
 - **Framework**: Model Context Protocol Go SDK v0.2.0
+- **Transport**: SSE (Server-Sent Events) for container mode, stdio for direct mode
 - **Config**: Viper with YAML/environment variables
 - **Logging**: Logrus structured logging
 - **Container**: Docker with security hardening
@@ -75,15 +82,51 @@ When completing development tasks:
 - **Network Isolation**: Custom bridge network with controlled access
 
 ## Development Notes
+- Server automatically detects container environment and switches between stdio (direct) and SSE (container) transports
 - All email content validation happens at handler level
 - SpamAssassin client uses connection pooling for performance
 - Configuration supports both YAML files and environment variables
 - Health checks verify both MCP server and SpamAssassin daemon status
 - Logging configured for structured output with configurable levels
+- Container mode serves MCP over HTTP at `/mcp` endpoint for Claude Code integration
 
-## Environment Variables
+## Configuration
+
+### .env File Support
+Create a `.env` file to customize server configuration:
+
+```bash
+# Port Configuration  
+SA_MCP_HOST_PORT=8081
+
+# Server Settings
+SA_MCP_LOG_LEVEL=info
+SA_MCP_SERVER_BIND_ADDR=0.0.0.0:8080
+
+# SpamAssassin Settings
+SA_MCP_SPAMASSASSIN_HOST=localhost
+SA_MCP_SPAMASSASSIN_PORT=783
+SA_MCP_SPAMASSASSIN_THRESHOLD=5.0
+
+# Security Settings
+SA_MCP_SECURITY_MAX_EMAIL_SIZE=10485760
+SA_MCP_SECURITY_RATE_LIMITING_REQUESTS_PER_MINUTE=60
+```
+
+### Environment Variables
+- `SA_MCP_HOST_PORT`: Host port to bind MCP server (default: 8081)
 - `SA_MCP_LOG_LEVEL`: Logging level (debug, info, warn, error)
 - `SA_MCP_SERVER_BIND_ADDR`: Server bind address (default: 0.0.0.0:8080)
 - `SA_MCP_SPAMASSASSIN_HOST`: SpamAssassin daemon host (default: localhost)
 - `SA_MCP_SPAMASSASSIN_PORT`: SpamAssassin daemon port (default: 783)
 - `SA_MCP_SECURITY_MAX_EMAIL_SIZE`: Maximum email size in bytes (default: 10MB)
+- `UPDATE_RULES`: Update SpamAssassin rules on startup (default: false)
+- `MCP_TRANSPORT`: Override transport mode - auto, stdio, or sse (default: auto)
+
+### Claude Code Integration
+For containerized deployment, connect Claude Code to:
+- **URL**: `http://localhost:8081/mcp`
+- **Transport**: SSE (Server-Sent Events)
+- **Protocol**: HTTP-based MCP communication
+
+The server automatically detects container environment and uses appropriate transport.

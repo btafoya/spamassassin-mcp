@@ -29,17 +29,24 @@ A secure, containerized Model Context Protocol (MCP) server that integrates Spam
 # Clone or create the project directory
 cd spamassassin-mcp
 
+# Optional: Copy and customize configuration
+cp .env.example .env
+# Edit .env to customize ports and settings
+
 # Build and start the containers
-docker-compose up -d
+docker compose up -d
 
 # Check health
-docker-compose logs spamassassin-mcp
+docker compose logs spamassassin-mcp
 ```
 
 ### 2. Connect Claude Code
 ```bash
-# Add to your MCP configuration
-claude --mcp-server spamassassin tcp://localhost:8080
+# Connect to containerized server (SSE transport)
+# Server URL: http://localhost:8081/mcp
+
+# Or for direct connection (stdio transport)
+./mcp-server
 ```
 
 ### 3. Test the Integration
@@ -136,12 +143,15 @@ spamassassin-mcp/
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `SA_MCP_HOST_PORT` | `8081` | Host port for container deployment |
 | `SA_MCP_LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
-| `SA_MCP_SERVER_BIND_ADDR` | `0.0.0.0:8080` | Server bind address |
+| `SA_MCP_SERVER_BIND_ADDR` | `0.0.0.0:8080` | Server bind address (container internal) |
 | `SA_MCP_SPAMASSASSIN_HOST` | `localhost` | SpamAssassin daemon host |
 | `SA_MCP_SPAMASSASSIN_PORT` | `783` | SpamAssassin daemon port |
 | `SA_MCP_SPAMASSASSIN_THRESHOLD` | `5.0` | Spam score threshold |
 | `SA_MCP_SECURITY_MAX_EMAIL_SIZE` | `10485760` | Max email size (10MB) |
+| `UPDATE_RULES` | `false` | Update SpamAssassin rules on startup |
+| `MCP_TRANSPORT` | `auto` | Transport mode (auto, stdio, sse) |
 
 ### Security Settings
 
@@ -204,10 +214,13 @@ docker ps
 ### Logs and Monitoring
 ```bash
 # View server logs
-docker-compose logs -f spamassassin-mcp
+docker compose logs -f spamassassin-mcp
 
 # Monitor resource usage
 docker stats spamassassin-mcp
+
+# Test MCP connectivity (container mode)
+curl -v http://localhost:8081/mcp
 ```
 
 ## 🔒 Security Considerations
@@ -249,11 +262,40 @@ go build -o mcp-server main.go
 ### Testing
 ```bash
 # Run with testing profile (includes spamd)
-docker-compose --profile testing up -d
+docker compose --profile testing up -d
 
 # Test SpamAssassin connectivity
-docker-compose exec spamassassin-mcp nc -z localhost 783
+docker compose exec spamassassin-mcp timeout 2 bash -c 'echo >/dev/tcp/localhost/783'
+
+# Test MCP server health
+docker compose exec spamassassin-mcp /usr/local/bin/health-check.sh
 ```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### Container Restart Loop
+**Symptoms**: Container continuously restarts with "read error: EOF"
+- **Cause**: stdio transport expects stdin input in container environment
+- **Solution**: Server automatically detects container mode and uses SSE transport
+- **Verification**: Check logs show "Starting MCP server with SSE transport"
+
+#### Port Conflicts
+**Symptoms**: "bind: address already in use"
+- **Solution**: Modify `SA_MCP_HOST_PORT` in `.env` file
+- **Default**: Server uses port 8081 to avoid conflicts
+
+#### Network Subnet Conflicts
+**Symptoms**: "Pool overlaps with other one on this address space"
+- **Solution**: docker-compose.yml uses 192.168.100.0/24 network
+- **Customization**: Modify networks section if conflicts persist
+
+#### Health Check Failures
+**Symptoms**: Container marked unhealthy
+- **Verification**: Run `/usr/local/bin/health-check.sh` manually
+- **Common Fix**: Ensure SpamAssassin daemon is running
+- **Debug**: Check `docker compose logs spamassassin-mcp`
 
 ## 📚 Documentation
 
@@ -261,7 +303,6 @@ docker-compose exec spamassassin-mcp nc -z localhost 783
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[Security Guide](docs/SECURITY.md)** - Security architecture and best practices
 - **[Development Guide](docs/DEVELOPMENT.md)** - Contributing and development setup
-- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Configuration Reference](docs/CONFIGURATION.md)** - Complete configuration options
 
 ## 📄 License
