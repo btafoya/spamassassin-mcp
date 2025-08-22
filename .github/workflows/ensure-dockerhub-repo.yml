@@ -1,0 +1,53 @@
+name: Ensure Docker Hub Repository
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ensure-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Extract Docker Hub information
+        run: |
+          chmod +x scripts/extract-dockerhub-info.sh
+          ./scripts/extract-dockerhub-info.sh
+
+      - name: Check if repository exists and create if needed
+        run: |
+          # Get auth token
+          TOKEN=$(curl -s -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"username":"${{ secrets.DOCKER_USERNAME }}","password":"${{ secrets.DOCKER_PASSWORD }}"}' \
+            https://hub.docker.com/v2/users/login/ | jq -r .token)
+          
+          # Check if repository exists
+          REPO_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: JWT $TOKEN" \
+            https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/spamassassin-mcp/)
+          
+          if [ "$REPO_CHECK" -eq 200 ]; then
+            echo "Repository exists"
+          elif [ "$REPO_CHECK" -eq 404 ]; then
+            echo "Repository does not exist, creating it..."
+            # Try to create repository
+            CREATE_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: JWT $TOKEN" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d '{"name":"spamassassin-mcp","description":"A secure, containerized Model Context Protocol (MCP) server","is_private":false}' \
+              https://hub.docker.com/v2/repositories/)
+            
+            if [ "$CREATE_RESPONSE" -eq 201 ]; then
+              echo "Repository created successfully"
+            else
+              echo "Failed to create repository: $CREATE_RESPONSE"
+            fi
+          else
+            echo "Unexpected response when checking repository: $REPO_CHECK"
+          fi
