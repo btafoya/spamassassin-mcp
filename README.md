@@ -327,6 +327,7 @@ This project uses GitHub Actions for continuous integration and deployment:
 
 1. **Docker Build and Push**: Automatically builds and pushes Docker images to Docker Hub on pushes to `main` branch and tags
 2. **Test Docker Image**: Runs tests on the Docker image to ensure it builds and runs correctly
+3. **Update Docker Hub Overview**: Automatically updates the Docker Hub repository description when README.md changes
 
 ### Setting up Docker Hub Publishing
 
@@ -348,6 +349,9 @@ To use the Docker Hub publishing workflow:
    - Add two new repository secrets:
      - `DOCKER_USERNAME`: Your Docker Hub username
      - `DOCKER_PASSWORD`: Your Docker Hub access token (the token you just created)
+   - For the Docker Hub description update workflow, also add:
+     - `DOCKERHUB_USERNAME`: Your Docker Hub username (same as DOCKER_USERNAME)
+     - `DOCKERHUB_PASSWORD`: Your Docker Hub access token (same as DOCKER_PASSWORD)
 
 4. Push to the `main` branch or create a tag starting with `v` (e.g., `v1.0.0`)
    - The workflow will automatically build and push the image to Docker Hub
@@ -358,6 +362,18 @@ Image tags:
 - `latest` - Latest build from the main branch
 - `vX.Y.Z` - Specific version tags for releases
 - `commit-SHA` - Specific commit builds
+
+### Manual Docker Hub Overview Update
+
+You can also manually generate the Docker Hub overview:
+
+```bash
+# Generate Docker Hub overview
+./scripts/extract-dockerhub-info.sh
+
+# Or use the manual update script with your credentials
+./scripts/update-dockerhub-manual.sh your-dockerhub-username your-dockerhub-access-token
+```
 
 ## 🤝 Contributing
 
