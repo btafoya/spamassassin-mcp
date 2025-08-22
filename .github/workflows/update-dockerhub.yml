@@ -17,11 +17,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug secrets
-        run: |
-          echo "DOCKERHUB_USERNAME set: ${{ secrets.DOCKERHUB_USERNAME != '' }}"
-          echo "DOCKERHUB_PASSWORD set: ${{ secrets.DOCKERHUB_PASSWORD != '' }}"
-
       - name: Extract Docker Hub information
         run: |
           chmod +x scripts/extract-dockerhub-info.sh
@@ -29,17 +24,17 @@ jobs:
 
       - name: Replace placeholders
         run: |
-          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ github.repository_owner }}" ]; then
-            sed -i "s/your-dockerhub-username/${{ secrets.DOCKERHUB_USERNAME }}/g" dockerhub-overview.md
+          if [ -n "${{ secrets.DOCKER_USERNAME }}" ] && [ -n "${{ github.repository_owner }}" ]; then
+            sed -i "s/your-dockerhub-username/${{ secrets.DOCKER_USERNAME }}/g" dockerhub-overview.md
             sed -i "s/your-username/${{ github.repository_owner }}/g" dockerhub-overview.md
           fi
 
       - name: Update Docker Hub description
-        if: secrets.DOCKERHUB_USERNAME != ''
+        if: secrets.DOCKER_USERNAME != ''
         uses: peter-evans/dockerhub-description@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: ${{ secrets.DOCKERHUB_USERNAME }}/spamassassin-mcp
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: ${{ secrets.DOCKER_USERNAME }}/spamassassin-mcp
           short-description: "A secure, containerized Model Context Protocol (MCP) server that integrates SpamAssassin for defensive email security analysis."
           readme-filepath: ./dockerhub-overview.md

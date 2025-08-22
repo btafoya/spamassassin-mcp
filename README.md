@@ -349,9 +349,6 @@ To use the Docker Hub publishing workflow:
    - Add two new repository secrets:
      - `DOCKER_USERNAME`: Your Docker Hub username
      - `DOCKER_PASSWORD`: Your Docker Hub access token (the token you just created)
-   - For the Docker Hub description update workflow, also add:
-     - `DOCKERHUB_USERNAME`: Your Docker Hub username (same as DOCKER_USERNAME)
-     - `DOCKERHUB_PASSWORD`: Your Docker Hub access token (same as DOCKER_PASSWORD)
 
 4. Push to the `main` branch or create a tag starting with `v` (e.g., `v1.0.0`)
    - The workflow will automatically build and push the image to Docker Hub
@@ -372,7 +369,7 @@ You can also manually generate the Docker Hub overview:
 ./scripts/extract-dockerhub-info.sh
 
 # Or use the manual update script with your credentials
-./scripts/update-dockerhub-manual.sh your-dockerhub-username your-dockerhub-access-token
+./scripts/update-dockerhub-manual.sh your-docker-username your-docker-access-token
 ```
 
 ## 🤝 Contributing
